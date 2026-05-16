@@ -3,16 +3,26 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 
-$path = $_SERVER['REQUEST_URI'];
+$path = trim($_SERVER['REQUEST_URI'], '/');
 $method = $_SERVER['REQUEST_METHOD'];
 
-$routes = [
-    '/api/' => 'handleHome',
-    '/api/about' => 'handleAbout',
-    '/api/join' => 'handleJoin',
-    '/api/chat' => 'handleChat',
-    '/api/donate' => 'handleDonate',
-];
+$segments = explode('/', $path);
+
+if ($segments[0] !== 'api') {
+    http_response_code(404);
+    echo json_encode(['status' => 'error', 'message' => 'Not Found']);
+    exit;
+}
+
+$endpoint = $segments[1] ?? '';
+$handlerName = 'handle' . ($endpoint === '' ? 'Home' : ucfirst($endpoint));
+
+if (function_exists($handlerName)) {
+    $handlerName();
+} else {
+    http_response_code(404);
+    echo json_encode(['status' => 'error', 'message' => 'Not Found']);
+}
 
 function handleHome() {
     echo json_encode([
@@ -68,12 +78,5 @@ function handleDonate() {
             'totalDonated' => '¥12,345'
         ]
     ]);
-}
-
-if (isset($routes[$path])) {
-    $routes[$path]();
-} else {
-    http_response_code(404);
-    echo json_encode(['status' => 'error', 'message' => 'Not Found']);
 }
 ?>
